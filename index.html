@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloudsmith — Artifact Security Maturity Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ── Cloudsmith Brand Palette ── */
+    --cs-blue:        #2A6FE1;
+    --cs-teal:        #85DABB;
+    --cs-yellow:      #FFD482;
+    --cs-salmon:      #ECA283;
+    --cs-purple:      #915EFF;
+    --cs-cool-black:  #092F45;
+    --cs-cool-grey:   #F1F3F6;
+
+    /* ── Dark UI surfaces derived from Cool Black ── */
+    --bg:             #061828;   /* deeper than cool black for true dark bg */
+    --surface:        #0a2236;   /* cool black ~90% */
+    --surface2:       #0d2d42;   /* cool black ~85% */
+    --border:         rgba(9,47,69,0.6);   /* cool black 10% on dark = subtle border */
+    --border-bright:  rgba(42,111,225,0.3); /* blue-tinted border for hover */
+
+    /* ── Semantic color aliases ── */
+    --teal:           #85DABB;   /* Cloudsmith Teal */
+    --teal-dim:       rgba(133,218,187,0.12);
+    --teal-mid:       rgba(133,218,187,0.3);
+    --amber:          #FFD482;   /* Cloudsmith Yellow */
+    --amber-dim:      rgba(255,212,130,0.15);
+    --red:            #ECA283;   /* Cloudsmith Salmon for warnings/critical */
+    --blue:           #2A6FE1;   /* Cloudsmith Blue — primary */
+    --purple:         #915EFF;   /* Cloudsmith Purple */
+
+    /* ── Text — Cool Black opacity variants on dark bg ── */
+    --text:           #E8EFF6;   /* near-white for dark bg readability */
+    --text-mid:       rgba(232,239,246,0.65);
+    --text-dim:       rgba(232,239,246,0.38);
+
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Inter', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ─── SHARED HEADER ─── */
+  header {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .header-left { flex: 1; min-width: 300px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--teal); }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 14px;
+  }
+  h1 span { color: var(--teal); }
+  .header-desc {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.65;
+    max-width: 520px;
+    font-weight: 300;
+  }
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    padding-top: 12px;
+  }
+  .pillar-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .pillar-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .pillar-tag.am  { background: rgba(42,111,225,0.12); color: var(--blue);   border: 1px solid rgba(42,111,225,0.25); }
+  .pillar-tag.scs { background: rgba(133,218,187,0.12);  color: var(--teal);   border: 1px solid rgba(133,218,187,0.25); }
+  .pillar-tag.reg { background: rgba(145,94,255,0.12); color: var(--purple); border: 1px solid rgba(145,94,255,0.25); }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ─── QUIZ SCREEN ─── */
+  .quiz-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* Progress bar */
+  .quiz-progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .quiz-progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Question counter */
+  .quiz-counter {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .quiz-counter-topic {
+    color: var(--teal);
+    border: 1px solid var(--teal-mid);
+    background: var(--teal-dim);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  /* Question */
+  .quiz-question {
+    font-family: var(--display);
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin-bottom: 32px;
+  }
+
+  /* Options */
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+
+  .quiz-option {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .quiz-option:hover { border-color: var(--border-bright); transform: translateX(3px); }
+  .quiz-option.selected {
+    border-color: var(--blue);
+    background: rgba(42,111,225,0.08);
+  }
+  .quiz-option.selected .opt-letter { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .opt-letter {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    border: 1px solid var(--border-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    margin-top: 1px;
+  }
+
+  .opt-content { flex: 1; }
+  .opt-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .opt-detail {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: block;
+    line-height: 1.4;
+  }
+
+  /* Score indicator on option */
+  .opt-score {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Nav */
+  .quiz-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .btn-ghost:hover { border-color: var(--border-bright); color: var(--text-mid); }
+  .btn-primary {
+    background: var(--blue);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+  .quiz-step-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .quiz-step-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-bright);
+    transition: all 0.3s;
+  }
+  .quiz-step-dot.done { background: var(--teal); }
+  .quiz-step-dot.current { background: var(--teal); width: 18px; border-radius: 3px; }
+
+  /* Slide animation */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-20px); }
+  }
+  .quiz-slide { animation: slideIn 0.3s ease forwards; }
+
+  /* ─── RESULT SCREEN ─── */
+  .result-wrap { max-width: 860px; margin: 0 auto; }
+
+  .result-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 36px 40px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .result-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--result-color, var(--teal)) 0%, transparent 55%);
+    opacity: 0.05;
+  }
+
+  .result-level-num {
+    font-family: var(--display);
+    font-size: 96px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--result-color, var(--teal));
+    flex-shrink: 0;
+  }
+
+  .result-divider { width: 1px; height: 80px; background: var(--border); flex-shrink: 0; }
+
+  .result-content { flex: 1; }
+  .result-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .result-title {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .result-desc {
+    font-size: 13.5px;
+    color: var(--text-mid);
+    line-height: 1.6;
+    font-weight: 300;
+    max-width: 480px;
+  }
+
+  .result-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 2px;
+    align-self: flex-start;
+  }
+
+  /* Score breakdown */
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .result-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .result-panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--display);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
+  .result-panel-body { padding: 16px 20px; }
+
+  .gap-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .gap-item:last-child { border-bottom: none; }
+  .gap-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .gap-text { color: var(--text-mid); line-height: 1.4; }
+  .gap-label { font-weight: 500; color: var(--text); display: block; margin-bottom: 1px; }
+
+  .topic-bar-item { margin-bottom: 14px; }
+  .topic-bar-item:last-child { margin-bottom: 0; }
+  .topic-bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 11.5px;
+    color: var(--text-mid);
+    font-family: var(--mono);
+  }
+  .topic-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .topic-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+  .result-cta {
+    background: var(--teal-dim);
+    border: 1px solid var(--teal-mid);
+    border-radius: 6px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .result-cta-text { flex: 1; }
+  .result-cta-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .result-cta-sub {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    font-weight: 300;
+  }
+
+  /* ─── MATURITY MODEL (unchanged from original) ─── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .level-nav {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+  .level-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .level-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--level-color, var(--teal));
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+    transform-origin: left;
+  }
+  .level-btn:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+  .level-btn:hover::after { transform: scaleX(1); }
+  .level-btn.active { border-color: var(--level-color, var(--teal)); background: linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 100%); box-shadow: 0 0 20px -4px var(--level-color,var(--teal)); }
+  .level-btn.active::after { transform: scaleX(1); }
+  .level-btn.past { opacity: 0.75; }
+  .level-num { font-family: var(--display); font-size: 28px; font-weight: 800; line-height: 1; color: var(--level-color,var(--text-dim)); margin-bottom: 4px; display: block; transition: color 0.2s; }
+  .level-btn.active .level-num { color: var(--level-color,var(--teal)); }
+  .level-short { font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); display: block; }
+  .level-btn.active .level-short { color: var(--text-mid); }
+
+  .progress-track { display: flex; align-items: center; gap: 0; margin-bottom: 32px; position: relative; }
+  .progress-step { flex: 1; display: flex; align-items: center; }
+  .progress-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); flex-shrink: 0; transition: all 0.3s ease; position: relative; z-index: 1; }
+  .progress-dot.done { border-color: var(--teal); background: var(--teal); }
+  .progress-dot.current { border-color: var(--level-color,var(--teal)); background: var(--bg); box-shadow: 0 0 12px var(--level-color,var(--teal)); }
+  .progress-dot.current::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid var(--level-color,var(--teal)); opacity: 0.4; }
+  .progress-line { flex: 1; height: 1px; background: var(--border); transition: background 0.3s ease; }
+  .progress-line.done { background: var(--teal); }
+
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .level-hero { grid-column: 1/-1; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px 32px; display: flex; align-items: center; gap: 32px; position: relative; overflow: hidden; transition: all 0.3s ease; }
+  .level-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,var(--level-color,var(--teal)) 0%,transparent 60%); opacity: 0.04; }
+  .level-hero-num { font-family: var(--display); font-size: 80px; font-weight: 800; line-height: 1; color: var(--level-color,var(--teal)); opacity: 0.9; flex-shrink: 0; letter-spacing: -0.05em; }
+  .level-hero-divider { width: 1px; height: 64px; background: var(--border); flex-shrink: 0; }
+  .level-hero-content { flex: 1; }
+  .level-hero-title { font-family: var(--display); font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .level-hero-sub { font-size: 13px; color: var(--text-mid); font-weight: 300; line-height: 1.5; max-width: 560px; }
+  .level-hero-right { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+  .risk-badge { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; transition: border-color 0.3s; }
+  .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .panel-icon { width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .panel-title { font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: 0.01em; }
+  .panel-body { padding: 20px; }
+  .practice-list { display: flex; flex-direction: column; gap: 10px; }
+  .practice-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); transition: border-color 0.2s; position: relative; }
+  .practice-item:hover { border-color: var(--border-bright); }
+  .practice-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .practice-text { flex: 1; }
+  .practice-text strong { display: block; font-size: 12.5px; font-weight: 500; color: var(--text); margin-bottom: 2px; line-height: 1.4; }
+  .practice-text span { font-size: 11.5px; color: var(--text-dim); line-height: 1.45; display: block; }
+  .practice-tag { font-family: var(--mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 2px; text-transform: uppercase; flex-shrink: 0; align-self: flex-start; margin-top: 2px; white-space: nowrap; }
+  .tag-cs  { background: rgba(133,218,187,0.12);  color: var(--teal);   border: 1px solid rgba(133,218,187,0.2);  }
+  .tag-int { background: rgba(42,111,225,0.12);  color: var(--blue);   border: 1px solid rgba(42,111,225,0.2);  }
+  .tag-proc{ background: rgba(145,94,255,0.12);  color: var(--purple); border: 1px solid rgba(145,94,255,0.2);  }
+
+  .reg-panel { grid-column: 1/-1; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .reg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 1px; background: var(--border); padding: 1px; }
+  .reg-item { background: var(--surface2); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+  .reg-name { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid); }
+  .reg-status { font-size: 12.5px; font-weight: 500; color: var(--text); line-height: 1.35; }
+  .reg-bar { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; margin-top: 4px; }
+  .reg-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+  .gain-panel { grid-column: 1/-1; background: var(--teal-dim); border: 1px solid var(--teal-mid); border-radius: 6px; padding: 20px 24px; display: none; }
+  .gain-panel.visible { display: block; }
+  .gain-header { font-family: var(--mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .gain-header::before { content: '↑ ADVANCING TO LEVEL '; }
+  .gain-items { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 10px; }
+  .gain-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-mid); }
+  .gain-item::before { content: '→'; color: var(--teal); font-family: var(--mono); font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+  /* assessed level highlight banner */
+  .assessed-banner {
+    grid-column: 1/-1;
+    background: rgba(0,201,167,0.08);
+    border: 1px solid var(--teal-mid);
+    border-radius: 6px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 12.5px;
+    color: var(--text-mid);
+    margin-bottom: 0;
+  }
+  .assessed-banner strong { color: var(--teal); font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .animate-in { animation: fadeIn 0.3s ease forwards; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  .footer-note { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .footer-note p { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .level-nav { grid-template-columns: repeat(3,1fr); }
+    header { flex-direction: column; }
+    .header-right { align-items: flex-start; }
+    .pillar-tags { justify-content: flex-start; }
+    .result-grid { grid-template-columns: 1fr; }
+    .result-hero { flex-direction: column; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-left">
+      <p class="eyebrow">Cloudsmith · Enterprise Readiness</p>
+      <h1 id="headerTitle">Artifact Security<br><span>Maturity Assessment</span></h1>
+      <p class="header-desc" id="headerDesc">Answer 10 questions about your current artifact management and supply chain security practices. We'll assess your maturity level and show you exactly where to focus next.</p>
+    </div>
+    <div class="header-right">
+      <div class="pillar-tags">
+        <span class="pillar-tag am">Artifact Management</span>
+        <span class="pillar-tag scs">Supply Chain Security</span>
+        <span class="pillar-tag reg">Regulatory Alignment</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── QUIZ SCREEN ── -->
+  <div class="screen active" id="screenQuiz">
+    <div class="quiz-wrap">
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div>
+      </div>
+      <div id="quizSlide"></div>
+    </div>
+  </div>
+
+  <!-- ── RESULT SCREEN ── -->
+  <div class="screen" id="screenResult">
+    <div class="result-wrap" id="resultContent"></div>
+  </div>
+
+  <!-- ── MATURITY MODEL SCREEN ── -->
+  <div class="screen" id="screenModel">
+    <div class="section-label" id="modelSectionLabel">Select Maturity Level</div>
+    <div class="level-nav" id="levelNav"></div>
+    <div class="progress-track" id="progressTrack"></div>
+    <div id="mainContent"></div>
+    <div class="footer-note">
+      <p>CS = Cloudsmith Feature &nbsp;·&nbsp; INT = Integration / Adjacent Tool &nbsp;·&nbsp; PROC = Process / Governance</p>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>Cloudsmith Native</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Integration</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--purple)"></span>Process &amp; Governance</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  QUIZ DATA
+// ═══════════════════════════════════════════════════════
+const QUESTIONS = [
+  {
+    topic: "Artifact Storage",
+    q: "Where does your team currently store internally built packages and artifacts?",
+    opts: [
+      { label: "Local machines, shared drives, or ad-hoc object storage (S3, GCS)", detail: "No single source of truth", score: 0 },
+      { label: "A self-hosted or cloud artifact registry (Cloudsmith, Nexus, Artifactory)", detail: "Centralized with some access control", score: 2 },
+      { label: "A managed registry with environment-based repo separation", detail: "Dev, staging, and production are isolated", score: 3 },
+      { label: "A fully governed registry with promotion workflows, RBAC, and audit logging", detail: "Artifacts only reach production after passing gates", score: 5 },
+    ]
+  },
+  {
+    topic: "Public Dependencies",
+    q: "How does your build system consume packages from public registries like npm, PyPI, or Docker Hub?",
+    opts: [
+      { label: "Directly from the public internet", detail: "No caching or control layer in place", score: 0 },
+      { label: "Via a basic proxy or caching layer", detail: "Some local caching, but no security policies applied", score: 1 },
+      { label: "All public registries are proxied through our private registry", detail: "Builds cannot reach the internet directly", score: 3 },
+      { label: "Proxied with active allow/deny policies and dependency firewalling", detail: "Known-bad packages and typosquatting patterns are blocked", score: 5 },
+    ]
+  },
+  {
+    topic: "Access Control",
+    q: "How do you manage access to your artifact repositories?",
+    opts: [
+      { label: "Little to no access control — most people can read or write", detail: "No meaningful permission boundaries", score: 0 },
+      { label: "Basic RBAC with team-level permissions", detail: "API tokens in use, but not systematically scoped", score: 2 },
+      { label: "Scoped, least-privilege tokens per pipeline and per team", detail: "Machine tokens rotated regularly", score: 3 },
+      { label: "Zero-trust: short-lived entitlement tokens, auto-rotation, full token usage audit", detail: "No long-lived credentials anywhere in the pipeline", score: 5 },
+    ]
+  },
+  {
+    topic: "Vulnerability Scanning",
+    q: "How are vulnerabilities in your dependencies and artifacts identified?",
+    opts: [
+      { label: "They aren't — we have no active scanning", detail: "CVEs in packages go undetected until an incident", score: 0 },
+      { label: "Ad-hoc or manual — someone runs a scan occasionally", detail: "No automated or continuous scanning", score: 1 },
+      { label: "Automated scanning in CI, but results are informational only", detail: "Scans run but don't gate deployments", score: 3 },
+      { label: "Automated scanning with policy-driven quarantine and CI gate enforcement", detail: "Critical CVEs block promotion; quarantine is automatic", score: 5 },
+    ]
+  },
+  {
+    topic: "Supply Chain Risk",
+    q: "How do you protect against supply chain attacks such as dependency confusion or typosquatting?",
+    opts: [
+      { label: "We don't have specific protections in place", detail: "Relying on public registries without controls", score: 0 },
+      { label: "We're aware of the risk but haven't implemented mitigations yet", detail: "Some discussion but no enforced controls", score: 1 },
+      { label: "We proxy all external packages and have some namespace controls", detail: "Dependency confusion mitigated at the proxy layer", score: 3 },
+      { label: "Full dependency firewall with allow/deny lists, Scorecard monitoring, and threat intel feeds", detail: "Active, continuous supply chain risk monitoring", score: 5 },
+    ]
+  },
+  {
+    topic: "Artifact Signing",
+    q: "Are your internally published artifacts cryptographically signed?",
+    opts: [
+      { label: "No — artifacts are unsigned", detail: "No integrity verification at consumption time", score: 0 },
+      { label: "Some artifacts are signed informally, but it's not enforced", detail: "No consistent signing policy", score: 1 },
+      { label: "Signing is enforced for production artifacts", detail: "GPG/PGP or Cosign used consistently", score: 3 },
+      { label: "All artifacts are signed, with signatures verified at deployment via admission controller", detail: "Sigstore/Cosign integrated; no unsigned artifact can reach production", score: 5 },
+    ]
+  },
+  {
+    topic: "SBOM & Provenance",
+    q: "Do you generate Software Bills of Materials (SBOMs) or provenance attestations for your artifacts?",
+    opts: [
+      { label: "No — we don't generate SBOMs or provenance", detail: "No artifact inventory or build traceability", score: 0 },
+      { label: "We've explored it but haven't implemented it consistently", detail: "Occasional manual SBOM generation", score: 1 },
+      { label: "SBOMs are generated in CI and stored alongside artifacts", detail: "CycloneDX or SPDX format, available on request", score: 3 },
+      { label: "SBOMs and SLSA provenance are attached to every artifact automatically", detail: "Full cryptographic chain from source to production", score: 5 },
+    ]
+  },
+  {
+    topic: "Compliance & Audit",
+    q: "How do you manage compliance evidence and audit trails for your artifact pipeline?",
+    opts: [
+      { label: "We don't — no audit trail exists", detail: "No logging of who published, accessed, or promoted what", score: 0 },
+      { label: "Basic logging exists but isn't centralized or exported", detail: "Hard to query or present to auditors", score: 1 },
+      { label: "Audit logs are centralized and periodically exported to a compliance platform", detail: "Evidence available for SOC 2 or similar audits", score: 3 },
+      { label: "Continuous, automated compliance monitoring with real-time dashboards", detail: "Auditors access dashboards directly; no manual evidence collection", score: 5 },
+    ]
+  },
+  {
+    topic: "License Compliance",
+    q: "How does your organization track and manage open-source license obligations?",
+    opts: [
+      { label: "We don't — license types are unknown across our dependencies", detail: "Potential GPL/AGPL exposure unmanaged", score: 0 },
+      { label: "Developers are expected to check manually, but it's inconsistent", detail: "No automated enforcement", score: 1 },
+      { label: "License scanning is automated and flags copyleft licenses", detail: "Problematic licenses are surfaced before adoption", score: 3 },
+      { label: "License compliance is enforced as a promotion gate — non-compliant packages are blocked", detail: "Full license inventory maintained and auditable", score: 5 },
+    ]
+  },
+  {
+    topic: "Incident Response",
+    q: "If a critical CVE were discovered in a package used across your builds today, how would you respond?",
+    opts: [
+      { label: "We'd struggle — we don't know which builds use which packages", detail: "No dependency inventory to query", score: 0 },
+      { label: "We'd identify it manually and communicate via Slack/email", detail: "Time-consuming, error-prone, and incomplete", score: 1 },
+      { label: "We'd use our registry's scan results to find affected packages and quarantine them", detail: "Structured response, but some manual steps remain", score: 3 },
+      { label: "Automated: CVE triggers quarantine, Renovate/Dependabot PRs, and SLA-tracked remediation workflow", detail: "Fully automated detection-to-remediation pipeline", score: 5 },
+    ]
+  }
+];
+
+// Topic scoring breakdown for result
+const TOPICS = [
+  "Artifact Storage", "Public Dependencies", "Access Control",
+  "Vulnerability Scanning", "Supply Chain Risk", "Artifact Signing",
+  "SBOM & Provenance", "Compliance & Audit", "License Compliance", "Incident Response"
+];
+
+// ═══════════════════════════════════════════════════════
+//  QUIZ STATE
+// ═══════════════════════════════════════════════════════
+let currentQ = 0;
+let answers = new Array(QUESTIONS.length).fill(null);
+let assessedLevel = 0;
+
+function renderQuestion(idx) {
+  const Q = QUESTIONS[idx];
+  const progress = ((idx) / QUESTIONS.length) * 100;
+  document.getElementById('quizProgressFill').style.width = progress + '%';
+
+  const dots = QUESTIONS.map((_, i) =>
+    `<div class="quiz-step-dot ${i < idx ? 'done' : i === idx ? 'current' : ''}"></div>`
+  ).join('');
+
+  const opts = Q.opts.map((o, oi) => `
+    <div class="quiz-option ${answers[idx] === oi ? 'selected' : ''}"
+         onclick="selectOption(${idx}, ${oi})">
+      <div class="opt-letter">${String.fromCharCode(65+oi)}</div>
+      <div class="opt-content">
+        <span class="opt-label">${o.label}</span>
+        <span class="opt-detail">${o.detail}</span>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('quizSlide').innerHTML = `
+    <div class="quiz-slide">
+      <div class="quiz-counter">
+        <span>${idx + 1} / ${QUESTIONS.length}</span>
+        <span class="quiz-counter-topic">${Q.topic}</span>
+      </div>
+      <div class="quiz-question">${Q.q}</div>
+      <div class="quiz-options">${opts}</div>
+      <div class="quiz-nav">
+        <div class="quiz-step-dots">${dots}</div>
+        <div style="display:flex;gap:10px">
+          ${idx > 0 ? `<button class="btn btn-ghost" onclick="prevQ()">← Back</button>` : '<span></span>'}
+          <button class="btn btn-primary" id="nextBtn"
+            onclick="${idx < QUESTIONS.length - 1 ? 'nextQ()' : 'finishQuiz()'}"
+            ${answers[idx] === null ? 'disabled' : ''}>
+            ${idx < QUESTIONS.length - 1 ? 'Next →' : 'See My Results'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectOption(qIdx, optIdx) {
+  answers[qIdx] = optIdx;
+  renderQuestion(qIdx);
+}
+
+function nextQ() {
+  if (answers[currentQ] === null) return;
+  currentQ++;
+  renderQuestion(currentQ);
+}
+
+function prevQ() {
+  if (currentQ === 0) return;
+  currentQ--;
+  renderQuestion(currentQ);
+}
+
+function finishQuiz() {
+  // Calculate score
+  let total = 0;
+  const topicScores = [];
+  answers.forEach((a, i) => {
+    const score = a !== null ? QUESTIONS[i].opts[a].score : 0;
+    total += score;
+    topicScores.push({ topic: QUESTIONS[i].topic, score, max: 5 });
+  });
+
+  const maxScore = QUESTIONS.length * 5; // 50
+  const pct = total / maxScore;
+
+  // Map to level 0–5
+  let level;
+  if (pct < 0.12)      level = 0;
+  else if (pct < 0.28) level = 1;
+  else if (pct < 0.48) level = 2;
+  else if (pct < 0.64) level = 3;
+  else if (pct < 0.82) level = 4;
+  else                 level = 5;
+
+  assessedLevel = level;
+  document.getElementById('quizProgressFill').style.width = '100%';
+
+  showResult(level, total, maxScore, topicScores);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESULT SCREEN
+// ═══════════════════════════════════════════════════════
+function showResult(level, score, maxScore, topicScores) {
+  const L = LEVELS[level];
+
+  // Identify 3 lowest-scoring topics
+  const sorted = [...topicScores].sort((a, b) => a.score - b.score);
+  const gaps = sorted.slice(0, 3);
+
+  // Color per score level
+  const topicColor = (s) => {
+    if (s <= 1) return '#ECA283';
+    if (s <= 2) return '#FFD482';
+    if (s <= 3) return '#C8A86B';
+    if (s <= 4) return '#85DABB';
+    return '#2A6FE1';
+  };
+
+  const topicBars = topicScores.map(t => `
+    <div class="topic-bar-item">
+      <div class="topic-bar-label">
+        <span>${t.topic}</span>
+        <span style="color:${topicColor(t.score)}">${t.score}/${t.max}</span>
+      </div>
+      <div class="topic-bar-track">
+        <div class="topic-bar-fill" style="width:${(t.score/t.max)*100}%;background:${topicColor(t.score)}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  const gapDots = gaps.map(g => `
+    <div class="gap-item">
+      <div class="gap-dot" style="background:${topicColor(g.score)}"></div>
+      <div class="gap-text">
+        <span class="gap-label">${g.topic}</span>
+        Scored ${g.score}/5 — a primary area to address to advance your maturity posture
+      </div>
+    </div>
+  `).join('');
+
+  const pct = Math.round((score / maxScore) * 100);
+
+  document.getElementById('resultContent').innerHTML = `
+    <div class="animate-in">
+      <!-- Hero -->
+      <div class="result-hero" style="--result-color:${L.color}">
+        <div class="result-level-num">${level}</div>
+        <div class="result-divider"></div>
+        <div class="result-content">
+          <div class="result-label">Your assessed maturity level</div>
+          <div class="result-title">${L.name}</div>
+          <div class="result-desc">${L.description}</div>
+        </div>
+        <div class="result-badge" style="background:${L.riskColor};color:${L.riskText};border:1px solid ${L.riskText}40;align-self:flex-start">
+          ${L.risk}
+        </div>
+      </div>
+
+      <!-- Score + gaps -->
+      <div class="result-grid">
+        <div class="result-panel">
+          <div class="result-panel-header">
+            <span style="font-size:16px">📊</span>
+            <span style="color:var(--blue)">Score by Topic</span>
+          </div>
+          <div class="result-panel-body">
+            <div style="margin-bottom:18px;display:flex;align-items:baseline;gap:8px">
+              <span style="font-family:var(--display);font-size:36px;font-weight:800;color:${L.color}">${score}</span>
+              <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">/ ${maxScore} points &nbsp;·&nbsp; ${pct}th percentile</span>
+            </div>
+            ${topicBars}
+          </div>
+        </div>
+
+        <div class="result-panel">
+          <div class="result-panel-header">
+            <span style="font-size:16px">🎯</span>
+            <span style="color:var(--red)">Priority Gaps to Address</span>
+          </div>
+          <div class="result-panel-body">
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px">Based on your responses, these areas represent your highest-priority improvement opportunities:</p>
+            ${gapDots}
+            ${level < 5 ? `
+            <div style="margin-top:16px;padding:12px 14px;background:var(--teal-dim);border:1px solid var(--teal-mid);border-radius:4px;font-size:12px;color:var(--text-mid)">
+              <strong style="color:var(--teal);font-family:var(--mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:4px">Next Step → Level ${level+1}: ${LEVELS[level+1].name}</strong>
+              ${LEVELS[level+1].description.split('.')[0]}.
+            </div>` : `
+            <div style="margin-top:16px;padding:12px 14px;background:rgba(145,94,255,0.08);border:1px solid rgba(145,94,255,0.25);border-radius:4px;font-size:12px;color:var(--text-mid)">
+              <strong style="color:var(--purple);font-family:var(--mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:4px">Maximum Maturity Achieved</strong>
+              Your organization is operating at the highest level of artifact security posture.
+            </div>`}
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="result-cta">
+        <div class="result-cta-text">
+          <div class="result-cta-title">Explore the full maturity model — starting at your level</div>
+          <div class="result-cta-sub">See exactly what capabilities define each level and what you'd gain by advancing</div>
+        </div>
+        <button class="btn btn-primary" onclick="enterModel()" style="white-space:nowrap;font-size:12px;padding:14px 28px">
+          Open Interactive Model →
+        </button>
+      </div>
+    </div>
+  `;
+
+  switchScreen('screenResult');
+  document.getElementById('headerTitle').innerHTML = 'Assessment<br><span>Results</span>';
+  document.getElementById('headerDesc').textContent = 'Based on your responses, here is your current maturity level and the gaps to address on your path to Level 5.';
+}
+
+function enterModel() {
+  switchScreen('screenModel');
+  document.getElementById('headerTitle').innerHTML = 'Supply Chain &amp; Artifact<br><span>Maturity Model</span>';
+  document.getElementById('headerDesc').textContent = 'A six-level framework for assessing and advancing your organization's artifact management practices and supply chain security posture — mapped to leading regulatory frameworks and industry standards.';
+  setLevel(assessedLevel);
+}
+
+function switchScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════
+//  MATURITY MODEL DATA
+// ═══════════════════════════════════════════════════════
+const LEVELS = [
+  {
+    id: 0, name: "Unmanaged", short: "Ad-hoc", color: "#ECA283",
+    risk: "Critical Exposure", riskColor: "rgba(236,162,131,0.15)", riskText: "#ECA283",
+    description: "No formal artifact strategy. Teams pull directly from public registries; artifacts are scattered across local machines, shared drives, or ad-hoc object storage. Supply chain attack surface is wide open with zero visibility.",
+    am: [
+      { title: "Multiple, inconsistent artifact stores", detail: "Artifacts live on local machines, S3 buckets, shared drives — no single source of truth", tag: "proc", dot: "#ECA283" },
+      { title: "No versioning or retention strategy", detail: "Artifact versions overwritten or lost; no promotion workflow between environments", tag: "proc", dot: "#ECA283" },
+      { title: "No access controls on artifacts", detail: "Anyone with repo/bucket access can read or overwrite artifacts", tag: "proc", dot: "#ECA283" },
+      { title: "Manual, error-prone distribution", detail: "Teams copy artifacts manually; no consistent delivery mechanism", tag: "proc", dot: "#ECA283" },
+    ],
+    scs: [
+      { title: "Direct pulls from public registries", detail: "Builds pull from npm, PyPI, Docker Hub, Maven Central with no caching or control layer", tag: "proc", dot: "#ECA283" },
+      { title: "Zero visibility into dependency inventory", detail: "No audit trail of what packages are in use across projects", tag: "proc", dot: "#ECA283" },
+      { title: "No vulnerability scanning", detail: "Unknown CVEs embedded in dependencies; no alerting mechanism", tag: "proc", dot: "#ECA283" },
+      { title: "No license compliance tracking", detail: "GPL/AGPL exposure unknown; legal risk unmanaged", tag: "proc", dot: "#ECA283" },
+    ],
+    reg: [
+      { name: "SLSA", status: "Not addressed", fill: 2, color: "#ECA283" },
+      { name: "EU CRA", status: "Non-compliant", fill: 2, color: "#ECA283" },
+      { name: "NIST SSDF", status: "Not addressed", fill: 2, color: "#ECA283" },
+      { name: "FedRAMP", status: "Ineligible", fill: 2, color: "#ECA283" },
+      { name: "DORA", status: "High ICT risk", fill: 2, color: "#ECA283" },
+      { name: "SOC 2", status: "Not applicable", fill: 2, color: "#ECA283" },
+    ],
+    gains: null
+  },
+  {
+    id: 1, name: "Centralized", short: "Foundational", color: "#FFD482",
+    risk: "High Exposure", riskColor: "rgba(255,212,130,0.15)", riskText: "#D4A030",
+    description: "Cloudsmith deployed as the primary artifact repository. Private packages are hosted centrally with basic RBAC and API tokens. A single source of truth is established — the foundation all future maturity builds upon.",
+    am: [
+      { title: "Cloudsmith as primary artifact repository", detail: "All internally produced artifacts published to Cloudsmith; one authoritative source across formats (npm, Maven, Docker, Python, etc.)", tag: "cs", dot: "#85DABB" },
+      { title: "Repository structure by team / environment", detail: "Separate repos for dev, staging, production workloads; clear ownership", tag: "cs", dot: "#85DABB" },
+      { title: "Basic RBAC and scoped API tokens", detail: "Team-level permissions; CI/CD pipelines use machine tokens with least-privilege access", tag: "cs", dot: "#85DABB" },
+      { title: "Audit logging enabled", detail: "All publish/delete/download events captured in Cloudsmith's audit log", tag: "cs", dot: "#85DABB" },
+    ],
+    scs: [
+      { title: "Reduced artifact sprawl", detail: "Internal artifacts no longer distributed via ad-hoc mechanisms; blast radius of compromise reduced", tag: "proc", dot: "#915EFF" },
+      { title: "Single point of control for internal packages", detail: "All teams consume from Cloudsmith — rogue artifact publishing curtailed", tag: "proc", dot: "#915EFF" },
+      { title: "Access audit trail begins", detail: "Cloudsmith audit log provides first visibility into who accessed what and when", tag: "cs", dot: "#85DABB" },
+      { title: "CI/CD integration established", detail: "Build pipelines (GitHub Actions, GitLab CI, Jenkins, Bitbucket) authenticate to and publish via Cloudsmith", tag: "int", dot: "#2A6FE1" },
+    ],
+    reg: [
+      { name: "SLSA", status: "L0 — Docs begin", fill: 10, color: "#FFD482" },
+      { name: "EU CRA", status: "Traceability starts", fill: 10, color: "#FFD482" },
+      { name: "NIST SSDF", status: "PO.1 (basic)", fill: 12, color: "#FFD482" },
+      { name: "FedRAMP", status: "Foundational only", fill: 8, color: "#ECA283" },
+      { name: "DORA", status: "Improving resilience", fill: 12, color: "#FFD482" },
+      { name: "SOC 2", status: "Type I possible", fill: 20, color: "#FFD482" },
+    ],
+    gains: [
+      "Single source of truth eliminates artifact sprawl and reduces supply chain attack surface",
+      "Audit logs create the first compliance-ready evidence trail",
+      "Scoped tokens reduce the blast radius of compromised credentials",
+      "Foundation for all future scanning, signing, and policy enforcement",
+    ]
+  },
+  {
+    id: 2, name: "Controlled", short: "Gated", color: "#C8A86B",
+    risk: "Moderate Exposure", riskColor: "rgba(200,168,107,0.15)", riskText: "#C8A86B",
+    description: "All public package consumption is proxied through Cloudsmith upstream sources — no build system accesses the public internet directly. License compliance, dependency firewalling, and environment-based promotion workflows are active.",
+    am: [
+      { title: "All public registries proxied through Cloudsmith", detail: "npm, PyPI, Maven Central, Docker Hub, RubyGems, Cargo, NuGet — all cached and controlled via Cloudsmith upstream sources", tag: "cs", dot: "#85DABB" },
+      { title: "Immutable retention policies on production repos", detail: "Published artifacts cannot be overwritten or deleted; version history protected", tag: "cs", dot: "#85DABB" },
+      { title: "Artifact promotion workflow (dev → staging → prod)", detail: "Packages promoted across environments via Cloudsmith API or CI gates; no direct prod publishes", tag: "cs", dot: "#85DABB" },
+      { title: "Entitlement tokens for downstream consumers", detail: "External customers or internal teams receive scoped, short-lived entitlement tokens to consume specific package sets", tag: "cs", dot: "#85DABB" },
+      { title: "Repo-level statistics and usage tracking", detail: "Cloudsmith download statistics expose which packages are actively consumed", tag: "cs", dot: "#85DABB" },
+    ],
+    scs: [
+      { title: "No direct public registry egress from build systems", detail: "Build networks restricted; all external packages resolved exclusively through Cloudsmith cache", tag: "proc", dot: "#915EFF" },
+      { title: "Dependency firewall active", detail: "Cloudsmith upstream allow/deny lists block known-bad namespaces, typosquatting patterns, and policy-violating packages", tag: "cs", dot: "#85DABB" },
+      { title: "License compliance scanning", detail: "License types reported on all cached packages; GPL/AGPL/SSPL flagged before consumption", tag: "cs", dot: "#85DABB" },
+      { title: "Webhook alerts on key supply chain events", detail: "Package publish, delete, and upstream cache events streamed to Slack / PagerDuty / SIEM", tag: "cs", dot: "#85DABB" },
+      { title: "Dependency review in pull requests", detail: "Renovate or Dependabot surface new dependency introductions; Cloudsmith provides version resolution", tag: "int", dot: "#2A6FE1" },
+    ],
+    reg: [
+      { name: "SLSA", status: "L1 — Build scripted", fill: 22, color: "#C8A86B" },
+      { name: "EU CRA", status: "Art.13 partial", fill: 28, color: "#C8A86B" },
+      { name: "NIST SSDF", status: "PW.4, PO.3", fill: 30, color: "#C8A86B" },
+      { name: "FedRAMP", status: "SA-12 partial", fill: 20, color: "#C8A86B" },
+      { name: "DORA", status: "ICT resilience +", fill: 28, color: "#C8A86B" },
+      { name: "SOC 2", status: "CC6 controls", fill: 40, color: "#C8A86B" },
+    ],
+    gains: [
+      "Proxying all public packages closes the most common supply chain attack vector (dependency confusion, typosquatting)",
+      "Promotion workflows enforce environment segregation and reduce accidental production incidents",
+      "Entitlement tokens give fine-grained control over external artifact distribution",
+      "License compliance prevents legal exposure from copyleft package adoption",
+    ]
+  },
+  {
+    id: 3, name: "Secured", short: "Hardened", color: "#85DABB",
+    risk: "Managed Exposure", riskColor: "rgba(133,218,187,0.12)", riskText: "#4DB896",
+    description: "Active vulnerability scanning with policy-driven quarantine is enforced. Security events are streamed to your SIEM. SBOM generation is underway and immutable audit logs support early compliance reporting.",
+    am: [
+      { title: "Vulnerability scanning on all repositories", detail: "Cloudsmith Security Scanning (powered by Grype/OSV) identifies CVEs in all hosted and proxied packages", tag: "cs", dot: "#85DABB" },
+      { title: "Quarantine policy enforcement", detail: "Packages with critical/high CVEs automatically quarantined; downstream consumption blocked until reviewed", tag: "cs", dot: "#85DABB" },
+      { title: "Geo-replication for availability", detail: "Production artifact repos replicated across regions; disaster recovery and low-latency global access guaranteed", tag: "cs", dot: "#85DABB" },
+      { title: "Deletion protection on production repos", detail: "Admin-level controls prevent accidental or malicious artifact deletion in production stores", tag: "cs", dot: "#85DABB" },
+      { title: "Audit log API for compliance exports", detail: "Cloudsmith audit API queried periodically; evidence exported to compliance platforms (Drata, Vanta, etc.)", tag: "cs", dot: "#85DABB" },
+    ],
+    scs: [
+      { title: "SIEM integration for security events", detail: "Cloudsmith webhook events streamed to Splunk, Datadog, Elastic, or Sentinel; correlated with other security signals", tag: "int", dot: "#2A6FE1" },
+      { title: "Blocked Upstream Sources (BUS) policy", detail: "Specific upstream namespaces, maintainer accounts, and package ranges explicitly blocked at the proxy layer", tag: "cs", dot: "#85DABB" },
+      { title: "SBOM generation alongside published artifacts", detail: "CycloneDX or SPDX SBOMs generated at build time using Syft, Trivy, or cdxgen; stored in Cloudsmith alongside artifacts", tag: "int", dot: "#2A6FE1" },
+      { title: "Security scan results in CI gate", detail: "CI pipeline queries Cloudsmith scan results via API; failing packages block deployment", tag: "cs", dot: "#85DABB" },
+      { title: "Dependency review governance policy", detail: "Formal process for approving new open-source dependency introductions; linked to vulnerability scoring", tag: "proc", dot: "#915EFF" },
+    ],
+    reg: [
+      { name: "SLSA", status: "L1–L2 — Provenance", fill: 42, color: "#85DABB" },
+      { name: "EU CRA", status: "Art.13 + SBOM basis", fill: 50, color: "#85DABB" },
+      { name: "NIST SSDF", status: "RV.1, PW.7", fill: 52, color: "#85DABB" },
+      { name: "FedRAMP", status: "SA-12, RA-5", fill: 44, color: "#85DABB" },
+      { name: "DORA", status: "Art.6 partial", fill: 50, color: "#85DABB" },
+      { name: "SOC 2", status: "Type II eligible", fill: 62, color: "#85DABB" },
+    ],
+    gains: [
+      "Quarantine policies prevent vulnerable packages from reaching production — automatically",
+      "SIEM integration gives security teams supply chain visibility alongside other threat signals",
+      "SBOM generation creates the artifact inventory record required by EU CRA and EO 14028",
+      "SOC 2 Type II becomes achievable with Cloudsmith audit log exports as compliance evidence",
+    ]
+  },
+  {
+    id: 4, name: "Verified", short: "Attested", color: "#2A6FE1",
+    risk: "Low Exposure", riskColor: "rgba(42,111,225,0.12)", riskText: "#2A6FE1",
+    description: "Cryptographic verification is enforced: packages are signed and attestations are linked to artifacts stored in Cloudsmith. SBOMs ship with every artifact. Policy-as-code gates control artifact promotion — nothing unsigned or unscanned reaches production.",
+    am: [
+      { title: "GPG/PGP package signing on publish", detail: "All internally published packages signed before pushing to Cloudsmith; signing keys managed via Vault or AWS KMS", tag: "int", dot: "#2A6FE1" },
+      { title: "SBOM attached to every published artifact", detail: "CycloneDX/SPDX SBOM stored as artifact attachment in Cloudsmith; discoverable via API at consumption time", tag: "cs", dot: "#85DABB" },
+      { title: "Artifact promotion gates via policy-as-code", detail: "OPA/Rego or custom API policies enforce: must be scanned, must be signed, must have no critical CVEs before promotion", tag: "int", dot: "#2A6FE1" },
+      { title: "Compliance-ready audit exports", detail: "Full artifact lifecycle exported on schedule: who published, what was scanned, what was promoted and when", tag: "cs", dot: "#85DABB" },
+      { title: "Short-lived entitlement token rotation", detail: "Entitlement tokens auto-rotated; external consumers re-authenticated on each release cycle", tag: "cs", dot: "#85DABB" },
+    ],
+    scs: [
+      { title: "Sigstore/Cosign integration for container signing", detail: "Container images and non-container artifacts signed with Cosign; signatures verified at deployment via admission controller (Kyverno, OPA Gatekeeper)", tag: "int", dot: "#2A6FE1" },
+      { title: "SLSA provenance generated in CI", detail: "GitHub Actions SLSA generic generator or GitLab provenance produces L2/L3 provenance attached to Cloudsmith artifacts", tag: "int", dot: "#2A6FE1" },
+      { title: "in-toto attestations linked to artifacts", detail: "Build, test, scan and review attestation steps captured in in-toto Link metadata; Cloudsmith artifact metadata references attestation digests", tag: "int", dot: "#2A6FE1" },
+      { title: "VEX statements published for known CVEs", detail: "VEX (Vulnerability Exploitability eXchange) documents state applicability of CVEs; reduces scanner noise and communicates risk accurately to downstream", tag: "proc", dot: "#915EFF" },
+      { title: "OpenSSF Scorecard on key dependencies", detail: "Periodic Scorecard runs assess security hygiene of top-used open-source dependencies cached in Cloudsmith", tag: "int", dot: "#2A6FE1" },
+    ],
+    reg: [
+      { name: "SLSA", status: "L2–L3 — Signed", fill: 68, color: "#2A6FE1" },
+      { name: "EU CRA", status: "SBOM + vuln disclosure", fill: 75, color: "#2A6FE1" },
+      { name: "NIST SSDF", status: "PW.4, RV.1, RV.2", fill: 74, color: "#2A6FE1" },
+      { name: "FedRAMP", status: "SA-12 + CM-3 controls", fill: 70, color: "#2A6FE1" },
+      { name: "DORA", status: "Art.6 + Art.9", fill: 72, color: "#2A6FE1" },
+      { name: "SOC 2", status: "Type II — CC7, CC8", fill: 80, color: "#2A6FE1" },
+    ],
+    gains: [
+      "Cryptographic signing makes artifact tampering detectable — every package can be verified as unmodified",
+      "SBOM-per-artifact satisfies EU CRA mandatory SBOM requirements and EO 14028 federal obligations",
+      "SLSA L2-L3 provenance proves the artifact came from your CI, not a compromised developer machine",
+      "VEX statements reduce vulnerability noise and demonstrate active CVE management to auditors",
+    ]
+  },
+  {
+    id: 5, name: "Optimized", short: "Autonomous", color: "#915EFF",
+    risk: "Minimal Exposure", riskColor: "rgba(145,94,255,0.12)", riskText: "#915EFF",
+    description: "Full cryptographic provenance chains, hermetic build verification, automated compliance reporting, and continuous risk scoring. Every artifact in Cloudsmith has an unbroken, auditable chain of custody from source code to production deployment.",
+    am: [
+      { title: "Full provenance chain for every artifact", detail: "Every artifact in Cloudsmith carries: SLSA provenance, in-toto attestation, SBOM, Cosign signature, and scan result — all verifiable cryptographically", tag: "cs", dot: "#85DABB" },
+      { title: "Automated promotion gates with full evidence", detail: "Promotion API checks: signed ✓, scanned ✓, SBOM attached ✓, provenance L3+ ✓, no critical CVEs ✓ — fully automated, zero manual override", tag: "cs", dot: "#85DABB" },
+      { title: "Zero-trust artifact distribution", detail: "Entitlement tokens are scoped, time-bounded, and auto-rotated; no long-lived credentials; token usage audited per consumer", tag: "cs", dot: "#85DABB" },
+      { title: "Continuous compliance monitoring + auto-reporting", detail: "Scheduled exports from Cloudsmith audit API feed directly into GRC platforms; auditors access dashboards rather than requesting evidence manually", tag: "cs", dot: "#85DABB" },
+      { title: "Supply chain risk dashboard", detail: "Cloudsmith package analytics combined with Scorecard scores, CVE trends, and SBOM inventory to produce real-time supply chain posture score", tag: "int", dot: "#2A6FE1" },
+    ],
+    scs: [
+      { title: "SLSA Level 3–4 hermetic builds", detail: "Builds run in ephemeral, network-isolated environments; Sigstore Rekor transparency log records every build attestation", tag: "int", dot: "#2A6FE1" },
+      { title: "Full attestation pipeline", detail: "Automated chain: source → build → SAST → dependency scan → sign → attest → push to Cloudsmith → promote; every step produces auditable evidence", tag: "int", dot: "#2A6FE1" },
+      { title: "Automated vulnerability remediation workflows", detail: "Cloudsmith vulnerability webhook triggers automated PRs (Renovate/Dependabot) and quarantine reviews; SLA tracked per CVE severity", tag: "cs", dot: "#85DABB" },
+      { title: "Continuous VEX maintenance", detail: "VEX statements updated automatically as CVE exploitability information changes; communicated to downstream consumers via Cloudsmith metadata", tag: "proc", dot: "#915EFF" },
+      { title: "Threat intelligence feeds against artifact inventory", detail: "Curated OSS threat intel (OpenSSF Malicious Packages, npm audit feed) cross-referenced against Cloudsmith-cached packages in real time", tag: "int", dot: "#2A6FE1" },
+    ],
+    reg: [
+      { name: "SLSA", status: "L3–L4 — Hermetic", fill: 95, color: "#915EFF" },
+      { name: "EU CRA", status: "Fully compliant", fill: 95, color: "#915EFF" },
+      { name: "NIST SSDF", status: "Full coverage", fill: 96, color: "#915EFF" },
+      { name: "FedRAMP", status: "High eligible", fill: 92, color: "#915EFF" },
+      { name: "DORA", status: "Art.6 + 9 + 11", fill: 92, color: "#915EFF" },
+      { name: "SOC 2", status: "Type II — full scope", fill: 98, color: "#915EFF" },
+    ],
+    gains: null
+  }
+];
+
+// ═══════════════════════════════════════════════════════
+//  MATURITY MODEL RENDER
+// ═══════════════════════════════════════════════════════
+let currentLevel = 0;
+
+function setLevel(n) {
+  currentLevel = n;
+  renderNav();
+  renderProgress();
+  renderModelMain();
+}
+
+function renderNav() {
+  const nav = document.getElementById('levelNav');
+  nav.innerHTML = LEVELS.map(l => `
+    <button class="level-btn ${l.id === currentLevel ? 'active' : l.id < currentLevel ? 'past' : ''}"
+      style="--level-color:${l.color}" onclick="setLevel(${l.id})">
+      <span class="level-num">${l.id}</span>
+      <span class="level-short">${l.short}</span>
+    </button>
+  `).join('');
+}
+
+function renderProgress() {
+  const track = document.getElementById('progressTrack');
+  track.innerHTML = LEVELS.map((l, i) => `
+    <div class="progress-step">
+      <div class="progress-dot ${i < currentLevel ? 'done' : i === currentLevel ? 'current' : ''}"
+           style="--level-color:${l.color}"></div>
+      ${i < LEVELS.length - 1 ? `<div class="progress-line ${i < currentLevel ? 'done' : ''}"></div>` : ''}
+    </div>
+  `).join('');
+}
+
+function tagLabel(tag) {
+  return tag === 'cs' ? 'CS' : tag === 'int' ? 'INT' : 'PROC';
+}
+
+function renderModelMain() {
+  const L = LEVELS[currentLevel];
+  const nextLevel = currentLevel < 5 ? LEVELS[currentLevel + 1] : null;
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="main-grid animate-in">
+
+      ${currentLevel === assessedLevel ? `
+        <div class="assessed-banner">
+          <span style="font-size:18px">🎯</span>
+          <div>
+            <strong>Your Assessed Level</strong>
+            <span style="margin-left:8px">This is where your organization currently sits based on your quiz responses. Use the navigator above to explore what advancing looks like.</span>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="level-hero" style="--level-color:${L.color}">
+        <div class="level-hero-num">${L.id}</div>
+        <div class="level-hero-divider"></div>
+        <div class="level-hero-content">
+          <div class="level-hero-title">${L.name}</div>
+          <div class="level-hero-sub">${L.description}</div>
+        </div>
+        <div class="level-hero-right">
+          <div class="risk-badge" style="background:${L.riskColor};color:${L.riskText};border:1px solid ${L.riskText}40">${L.risk}</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-icon" style="background:rgba(59,130,246,0.12)">📦</div>
+          <span class="panel-title" style="color:#2A6FE1">Artifact Management</span>
+        </div>
+        <div class="panel-body">
+          <div class="practice-list">
+            ${L.am.map(p => `
+              <div class="practice-item">
+                <div class="practice-dot" style="background:${p.dot}"></div>
+                <div class="practice-text"><strong>${p.title}</strong><span>${p.detail}</span></div>
+                <span class="practice-tag tag-${p.tag}">${tagLabel(p.tag)}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-icon" style="background:rgba(0,201,167,0.12)">🔐</div>
+          <span class="panel-title" style="color:var(--teal)">Supply Chain Security</span>
+        </div>
+        <div class="panel-body">
+          <div class="practice-list">
+            ${L.scs.map(p => `
+              <div class="practice-item">
+                <div class="practice-dot" style="background:${p.dot}"></div>
+                <div class="practice-text"><strong>${p.title}</strong><span>${p.detail}</span></div>
+                <span class="practice-tag tag-${p.tag}">${tagLabel(p.tag)}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="reg-panel">
+        <div class="panel-header">
+          <div class="panel-icon" style="background:rgba(168,85,247,0.12)">⚖️</div>
+          <span class="panel-title" style="color:var(--purple)">Regulatory &amp; Framework Alignment</span>
+        </div>
+        <div class="reg-grid">
+          ${L.reg.map(r => `
+            <div class="reg-item">
+              <div class="reg-name">${r.name}</div>
+              <div class="reg-status">${r.status}</div>
+              <div class="reg-bar"><div class="reg-bar-fill" style="width:${r.fill}%;background:${r.color}"></div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      ${nextLevel && L.id > 0 ? `
+        <div class="gain-panel visible">
+          <div class="gain-header">${nextLevel.id} — ${nextLevel.name}</div>
+          <div class="gain-items">
+            ${L.gains ? L.gains.map(g => `<div class="gain-item">${g}</div>`).join('') : ''}
+          </div>
+        </div>` : ''}
+
+      ${currentLevel === 0 ? `
+        <div class="gain-panel visible" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25)">
+          <div class="gain-header" style="color:#ECA283">STARTING POINT — What deploying Cloudsmith immediately unlocks</div>
+          <div class="gain-items">
+            <div class="gain-item">Centralized repository eliminates artifact sprawl in a single deployment</div>
+            <div class="gain-item">RBAC and scoped API tokens replace uncontrolled file sharing immediately</div>
+            <div class="gain-item">Audit logging begins — first compliance-ready evidence trail</div>
+            <div class="gain-item">Foundation for all Level 2–5 capabilities is established from day one</div>
+          </div>
+        </div>` : ''}
+
+      ${currentLevel === 5 ? `
+        <div class="gain-panel visible" style="background:rgba(145,94,255,0.08);border-color:rgba(145,94,255,0.25)">
+          <div class="gain-header" style="color:var(--purple)">LEVEL 5 ACHIEVED — Maximum posture reached</div>
+          <div class="gain-items">
+            <div class="gain-item">Full cryptographic chain of custody from source to production — every artifact verifiable</div>
+            <div class="gain-item">Regulatory posture across SLSA, EU CRA, FedRAMP High, DORA and SOC 2 fully maintained</div>
+            <div class="gain-item">Supply chain risk continuously monitored; no manual evidence collection required</div>
+            <div class="gain-item">Industry-leading security posture — a competitive differentiator, not just compliance</div>
+          </div>
+        </div>` : ''}
+
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+renderQuestion(0);
+</script>
+</body>
+</html>
