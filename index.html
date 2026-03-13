@@ -602,6 +602,266 @@
   .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
   .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
 
+  /* ─── INTRO SCREEN ─── */
+  .intro-wrap { max-width: 860px; margin: 0 auto; }
+
+  .intro-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 48px 52px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .intro-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(133,218,187,0.06) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  .intro-hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .intro-hero-eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--teal); }
+
+  .intro-hero-title {
+    font-family: var(--display);
+    font-size: clamp(24px, 3.5vw, 38px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin-bottom: 18px;
+  }
+  .intro-hero-title span { color: var(--teal); }
+
+  .intro-hero-body {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.7;
+    font-weight: 300;
+    max-width: 600px;
+    margin-bottom: 36px;
+  }
+  .intro-hero-body strong { color: var(--text); font-weight: 500; }
+
+  .intro-start-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .btn-start {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 16px 36px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: var(--teal);
+    color: var(--bg);
+    transition: all 0.2s ease;
+  }
+  .btn-start:hover { opacity: 0.88; transform: translateY(-1px); }
+
+  .intro-meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .intro-meta::before { content: '⏱'; font-size: 12px; }
+
+  .intro-pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .intro-pillar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    transition: border-color 0.2s;
+  }
+  .intro-pillar:hover { border-color: var(--border-bright); }
+
+  .intro-pillar-icon {
+    font-size: 20px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .intro-pillar-title {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .intro-pillar-body {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    font-weight: 300;
+  }
+
+  .intro-what-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .intro-what-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px 24px;
+  }
+  .intro-what-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .intro-what-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .intro-step-list { display: flex; flex-direction: column; gap: 10px; }
+  .intro-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--text-mid);
+    line-height: 1.45;
+  }
+  .intro-step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--teal);
+    background: var(--teal-dim);
+    border: 1px solid var(--teal-mid);
+    border-radius: 2px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .intro-level-list { display: flex; flex-direction: column; gap: 8px; }
+  .intro-level-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-mid);
+  }
+  .intro-level-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .intro-level-num-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ─── DEMO CTA PANEL (maturity model) ─── */
+  .model-demo-cta {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .model-demo-cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(42,111,225,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .model-demo-cta-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+  }
+  .model-demo-cta-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .model-demo-cta-text {}
+  .model-demo-cta-title {
+    font-family: var(--display);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  .model-demo-cta-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+  .btn-demo {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 11px 22px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: var(--blue);
+    color: #fff;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-demo:hover { opacity: 0.88; transform: translateY(-1px); }
+
   @media (max-width: 768px) {
     .main-grid { grid-template-columns: 1fr; }
     .level-nav { grid-template-columns: repeat(3,1fr); }
@@ -610,6 +870,8 @@
     .pillar-tags { justify-content: flex-start; }
     .result-grid { grid-template-columns: 1fr; }
     .result-hero { flex-direction: column; gap: 16px; }
+    .intro-pillars { grid-template-columns: 1fr; }
+    .intro-what-row { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -631,8 +893,103 @@
     </div>
   </header>
 
+  <!-- ── INTRO SCREEN ── -->
+  <div class="screen active" id="screenIntro">
+    <div class="intro-wrap">
+
+      <div class="intro-hero">
+        <div class="intro-hero-eyebrow">Cloudsmith · Artifact Security Maturity</div>
+        <h2 class="intro-hero-title">Where does your supply chain<br><span>security actually stand?</span></h2>
+        <p class="intro-hero-body">
+          Most engineering teams have a rough sense of their security posture — but the gap between "we have a registry" and "we have a secure, auditable software supply chain" is wider than it looks. <strong>This assessment gives you a precise read on where you are across artifact management, supply chain security, and regulatory alignment,</strong> and maps a clear path to where you need to be.
+          <br><br>
+          Answer 10 questions about your current practices. We'll place you on a six-level maturity model used by engineering teams running production artifact infrastructure at scale — and show you the specific controls, integrations, and processes that separate your current level from the next.
+        </p>
+        <div class="intro-start-row">
+          <button class="btn-start" onclick="startQuiz()">Start Assessment →</button>
+          <span class="intro-meta">10 questions &nbsp;·&nbsp; ~3 minutes</span>
+        </div>
+      </div>
+
+      <div class="intro-pillars">
+        <div class="intro-pillar">
+          <span class="intro-pillar-icon">📦</span>
+          <div class="intro-pillar-title">Artifact Management</div>
+          <div class="intro-pillar-body">How you store, version, promote, and distribute internally built packages — from local chaos to fully governed promotion workflows.</div>
+        </div>
+        <div class="intro-pillar">
+          <span class="intro-pillar-icon">🔐</span>
+          <div class="intro-pillar-title">Supply Chain Security</div>
+          <div class="intro-pillar-body">Controls across your dependency graph: proxying, signing, scanning, provenance, and protection against confusion and typosquatting attacks.</div>
+        </div>
+        <div class="intro-pillar">
+          <span class="intro-pillar-icon">⚖️</span>
+          <div class="intro-pillar-title">Regulatory Alignment</div>
+          <div class="intro-pillar-body">Your posture against SLSA, NIST SSDF, EU CRA, FedRAMP, DORA, and SOC 2 — mapped directly to the artifact and build pipeline layer.</div>
+        </div>
+      </div>
+
+      <div class="intro-what-row">
+        <div class="intro-what-panel">
+          <div class="intro-what-label">How it works</div>
+          <div class="intro-step-list">
+            <div class="intro-step">
+              <div class="intro-step-num">1</div>
+              <span>Answer 10 questions about your current artifact storage, access control, scanning, signing, and incident response practices</span>
+            </div>
+            <div class="intro-step">
+              <div class="intro-step-num">2</div>
+              <span>Get placed on a six-level maturity model with a score breakdown by topic and your top priority gaps identified</span>
+            </div>
+            <div class="intro-step">
+              <div class="intro-step-num">3</div>
+              <span>Explore the full interactive model — see what capabilities define each level and exactly what advancing looks like in practice</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-what-panel">
+          <div class="intro-what-label">The six levels</div>
+          <div class="intro-level-list">
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#ECA283"></div>
+              <span class="intro-level-num-label">0</span>
+              <span>Ad-hoc — No centralized registry or controls</span>
+            </div>
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#ECA283"></div>
+              <span class="intro-level-num-label">1</span>
+              <span>Foundational — Basic registry, minimal access control</span>
+            </div>
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#FFD482"></div>
+              <span class="intro-level-num-label">2</span>
+              <span>Repeatable — Scanning, proxying, and RBAC in place</span>
+            </div>
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#FFD482"></div>
+              <span class="intro-level-num-label">3</span>
+              <span>Defined — Signing, SBOMs, and policy-gated promotion</span>
+            </div>
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#85DABB"></div>
+              <span class="intro-level-num-label">4</span>
+              <span>Managed — Automated remediation and full audit trails</span>
+            </div>
+            <div class="intro-level-row">
+              <div class="intro-level-dot" style="background:#915EFF"></div>
+              <span class="intro-level-num-label">5</span>
+              <span>Optimized — Cryptographic provenance, hermetic builds</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── QUIZ SCREEN ── -->
-  <div class="screen active" id="screenQuiz">
+  <div class="screen" id="screenQuiz">
     <div class="quiz-wrap">
       <div class="quiz-progress-bar">
         <div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div>
@@ -648,6 +1005,16 @@
 
   <!-- ── MATURITY MODEL SCREEN ── -->
   <div class="screen" id="screenModel">
+    <div class="model-demo-cta">
+      <div class="model-demo-cta-left">
+        <div class="model-demo-cta-icon">🚀</div>
+        <div class="model-demo-cta-text">
+          <div class="model-demo-cta-title">See how Cloudsmith can help you improve your security maturity</div>
+          <div class="model-demo-cta-sub">Talk to an engineer about your specific stack and where Cloudsmith accelerates your path to the next level</div>
+        </div>
+      </div>
+      <a href="https://cloudsmith.com/book-a-demo" target="_blank" class="btn-demo">Book a Demo →</a>
+    </div>
     <div class="section-label" id="modelSectionLabel">Select Maturity Level</div>
     <div class="level-nav" id="levelNav"></div>
     <div class="progress-track" id="progressTrack"></div>
@@ -969,15 +1336,20 @@ function showResult(level, score, maxScore, topicScores) {
         </div>
       </div>
 
-      <!-- CTA -->
-      <div class="result-cta">
+      <!-- CTAs -->
+      <div class="result-cta" style="gap:16px">
         <div class="result-cta-text">
-          <div class="result-cta-title">Explore the full maturity model — starting at your level</div>
-          <div class="result-cta-sub">See exactly what capabilities define each level and what you'd gain by advancing</div>
+          <div class="result-cta-title">See how Cloudsmith can help you improve your security maturity</div>
+          <div class="result-cta-sub">Talk through your results with an engineer who works on these problems every day</div>
         </div>
-        <button class="btn btn-primary" onclick="enterModel()" style="white-space:nowrap;font-size:12px;padding:14px 28px">
-          Open Interactive Model →
-        </button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex-shrink:0">
+          <button class="btn btn-ghost" onclick="enterModel()" style="white-space:nowrap;font-size:11px;padding:13px 22px">
+            Explore Maturity Model →
+          </button>
+          <a href="https://cloudsmith.com/book-a-demo" target="_blank" class="btn btn-primary" style="white-space:nowrap;font-size:11px;padding:13px 22px;text-decoration:none">
+            Request a Demo →
+          </a>
+        </div>
       </div>
     </div>
   `;
@@ -1340,10 +1712,19 @@ function renderModelMain() {
   `;
 }
 
+function startQuiz() {
+  switchScreen('screenQuiz');
+  document.getElementById('headerTitle').innerHTML = 'Artifact Security<br><span>Maturity Assessment</span>';
+  document.getElementById('headerDesc').textContent = 'Answer 10 questions about your current artifact management and supply chain security practices. We\'ll assess your maturity level and show you exactly where to focus next.';
+  renderQuestion(0);
+}
+
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
-renderQuestion(0);
+// Set intro header state on load
+document.getElementById('headerTitle').innerHTML = 'Artifact Security<br><span>Maturity Assessment</span>';
+document.getElementById('headerDesc').textContent = 'A practical self-assessment for DevOps and platform engineering teams. Find your current maturity level and explore the path to a fully secured software supply chain.';
 </script>
 </body>
 </html>
