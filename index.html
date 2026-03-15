@@ -6,6 +6,7 @@
 <title>Cloudsmith — Artifact Security Maturity Assessment</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     /* ── Cloudsmith Brand Palette ── */
@@ -1243,7 +1244,10 @@ function finishQuiz() {
 // ═══════════════════════════════════════════════════════
 //  RESULT SCREEN
 // ═══════════════════════════════════════════════════════
+let lastResultData = null;
+
 function showResult(level, score, maxScore, topicScores) {
+  lastResultData = { level, score, maxScore, topicScores };
   const L = LEVELS[level];
 
   // Identify 3 lowest-scoring topics
@@ -1346,6 +1350,9 @@ function showResult(level, score, maxScore, topicScores) {
           <button class="btn btn-primary" onclick="enterModel()" style="white-space:nowrap;font-size:11px;padding:13px 22px">
             Explore Maturity Model →
           </button>
+          <button class="btn btn-ghost" id="downloadPdfBtn" onclick="downloadPDF()" style="white-space:nowrap;font-size:11px;padding:13px 22px;display:flex;align-items:center;gap:7px">
+            <span>↓</span> Download PDF Report
+          </button>
           <a href="https://cloudsmith.com/book-a-demo" target="_blank" class="btn btn-ghost" style="white-space:nowrap;font-size:11px;padding:13px 22px;text-decoration:none;color:var(--text-mid)">
             Talk to Us →
           </a>
@@ -1357,6 +1364,492 @@ function showResult(level, score, maxScore, topicScores) {
   switchScreen('screenResult');
   document.getElementById('headerTitle').innerHTML = 'Assessment<br><span>Results</span>';
   document.getElementById('headerDesc').textContent = 'Based on your responses, here is your current maturity level and the gaps to address on your path to Level 5.';
+}
+
+function downloadPDF() {
+  if (!lastResultData) return;
+  const btn = document.getElementById('downloadPdfBtn');
+  if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
+
+  const { jsPDF } = window.jspdf;
+  const { level, score, maxScore, topicScores } = lastResultData;
+  const L = LEVELS[level];
+  const pct = Math.round((score / maxScore) * 100);
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const margin = 48;
+  const contentW = W - margin * 2;
+
+  // ── Color helpers ──
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return [r, g, b];
+  }
+  function setFill(hex, a) {
+    const [r,g,b] = hexToRgb(hex);
+    if (a !== undefined) doc.setFillColor(r,g,b); // jsPDF doesn't do fill alpha directly, approximate
+    else doc.setFillColor(r,g,b);
+  }
+  function setDraw(hex) { const [r,g,b] = hexToRgb(hex); doc.setDrawColor(r,g,b); }
+  function setTextCol(hex) { const [r,g,b] = hexToRgb(hex); doc.setTextColor(r,g,b); }
+
+  // ── Constants ──
+  const CS_BG      = '#061828';
+  const CS_SURFACE = '#0a2236';
+  const CS_TEAL    = '#85DABB';
+  const CS_BLUE    = '#2A6FE1';
+  const CS_PURPLE  = '#915EFF';
+  const CS_AMBER   = '#FFD482';
+  const CS_SALMON  = '#ECA283';
+  const WHITE      = '#FFFFFF';
+  const TEXT       = '#E8EFF6';
+  const TEXT_MID   = '#9BAFC4';
+  const TEXT_DIM   = '#526070';
+  const BORDER     = '#0d2d42';
+
+  const topicColor = (s) => {
+    if (s <= 1) return CS_SALMON;
+    if (s <= 2) return CS_AMBER;
+    if (s <= 3) return '#C8A86B';
+    if (s <= 4) return CS_TEAL;
+    return CS_BLUE;
+  };
+
+  // ── Page fill ──
+  function fillPage() {
+    setFill(CS_BG);
+    doc.rect(0, 0, W, H, 'F');
+  }
+  fillPage();
+
+  let y = 0;
+
+  // ─────────────────────────────────────────
+  // PAGE 1 — COVER / RESULTS SUMMARY
+  // ─────────────────────────────────────────
+
+  // Header bar
+  setFill(CS_SURFACE);
+  doc.rect(0, 0, W, 80, 'F');
+  // Teal accent line
+  setFill(CS_TEAL);
+  doc.rect(0, 80, W, 2, 'F');
+
+  // Cloudsmith wordmark
+  setTextCol(CS_TEAL);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('CLOUDSMITH', margin, 34);
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('· ARTIFACT SECURITY', margin + 78, 34);
+
+  // Date top-right
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(date, W - margin, 34, { align: 'right' });
+
+  // Report title
+  setTextCol(TEXT_MID);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.text('ARTIFACT SECURITY MATURITY ASSESSMENT', margin, 62);
+
+  y = 114;
+
+  // ── Level hero block ──
+  const heroH = 110;
+  setFill(CS_SURFACE);
+  doc.roundedRect(margin, y, contentW, heroH, 4, 4, 'F');
+  // Level color left accent bar
+  setFill(L.color);
+  doc.roundedRect(margin, y, 4, heroH, 2, 2, 'F');
+
+  // Big level number
+  setTextCol(L.color);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(72);
+  doc.text(String(level), margin + 28, y + 76);
+
+  // Vertical divider
+  setFill(BORDER);
+  doc.rect(margin + 80, y + 20, 1, heroH - 40, 'F');
+
+  // Level info
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('YOUR ASSESSED MATURITY LEVEL', margin + 98, y + 28);
+
+  setTextCol(WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.text(L.name, margin + 98, y + 50);
+
+  setTextCol(TEXT_MID);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const descLines = doc.splitTextToSize(L.description, contentW - 120);
+  doc.text(descLines, margin + 98, y + 67);
+
+  // Risk badge (top-right of hero)
+  const riskBadgeX = W - margin - 10;
+  setTextCol(L.riskText);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(L.risk.toUpperCase(), riskBadgeX, y + 28, { align: 'right' });
+
+  y += heroH + 18;
+
+  // ── Score summary row ──
+  const scoreBoxW = (contentW - 10) / 3;
+
+  // Box 1: Total score
+  setFill(CS_SURFACE);
+  doc.roundedRect(margin, y, scoreBoxW, 58, 3, 3, 'F');
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('TOTAL SCORE', margin + 14, y + 16);
+  setTextCol(L.color);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.text(String(score), margin + 14, y + 43);
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(`/ ${maxScore}`, margin + 14 + doc.getTextWidth(String(score)) + 4, y + 43);
+
+  // Box 2: Level
+  const b2x = margin + scoreBoxW + 5;
+  setFill(CS_SURFACE);
+  doc.roundedRect(b2x, y, scoreBoxW, 58, 3, 3, 'F');
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('MATURITY LEVEL', b2x + 14, y + 16);
+  setTextCol(WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.text(`${level} / 5`, b2x + 14, y + 43);
+
+  // Box 3: Risk
+  const b3x = margin + scoreBoxW * 2 + 10;
+  setFill(CS_SURFACE);
+  doc.roundedRect(b3x, y, scoreBoxW, 58, 3, 3, 'F');
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('RISK POSTURE', b3x + 14, y + 16);
+  setTextCol(L.riskText);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  const riskLines = doc.splitTextToSize(L.risk, scoreBoxW - 28);
+  doc.text(riskLines, b3x + 14, y + 37);
+
+  y += 58 + 18;
+
+  // ── Section: Score by Topic ──
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('SCORE BY TOPIC', margin, y);
+  setFill(BORDER);
+  doc.rect(margin + 88, y - 2, contentW - 88, 0.5, 'F');
+  y += 12;
+
+  topicScores.forEach((t) => {
+    const color = topicColor(t.score);
+    const barW = contentW - 60;
+    const fillW = (t.score / t.max) * barW;
+
+    // Topic name
+    setTextCol(TEXT_MID);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(t.topic, margin, y + 8);
+
+    // Score label
+    setTextCol(color);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(`${t.score}/${t.max}`, W - margin, y + 8, { align: 'right' });
+
+    // Track
+    setFill(BORDER);
+    doc.roundedRect(margin, y + 12, barW, 4, 1, 1, 'F');
+    // Fill
+    if (fillW > 0) {
+      setFill(color);
+      doc.roundedRect(margin, y + 12, fillW, 4, 1, 1, 'F');
+    }
+
+    y += 26;
+  });
+
+  y += 6;
+
+  // ── Section: Priority Gaps ──
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('PRIORITY GAPS TO ADDRESS', margin, y);
+  setFill(BORDER);
+  doc.rect(margin + 128, y - 2, contentW - 128, 0.5, 'F');
+  y += 12;
+
+  const sorted = [...topicScores].sort((a, b) => a.score - b.score);
+  const gaps = sorted.slice(0, 3);
+
+  gaps.forEach((g) => {
+    const color = topicColor(g.score);
+    // Dot
+    setFill(color);
+    doc.circle(margin + 4, y + 5, 3, 'F');
+
+    setTextCol(WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(g.topic, margin + 14, y + 8);
+
+    setTextCol(TEXT_MID);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Scored ${g.score}/5 — primary area to address`, margin + 14, y + 19);
+
+    y += 30;
+  });
+
+  // ── Next step box ──
+  if (level < 5) {
+    const nextL = LEVELS[level + 1];
+    y += 4;
+    setFill(CS_SURFACE);
+    doc.roundedRect(margin, y, contentW, 44, 3, 3, 'F');
+    setFill(CS_TEAL);
+    doc.roundedRect(margin, y, 3, 44, 1.5, 1.5, 'F');
+    setTextCol(CS_TEAL);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(`NEXT STEP → LEVEL ${level + 1}: ${nextL.name.toUpperCase()}`, margin + 14, y + 15);
+    setTextCol(TEXT_MID);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const nextDesc = doc.splitTextToSize(nextL.description.split('.')[0] + '.', contentW - 28);
+    doc.text(nextDesc, margin + 14, y + 28);
+    y += 44 + 18;
+  }
+
+  // ─────────────────────────────────────────
+  // PAGE 2 — DETAILED BREAKDOWN
+  // ─────────────────────────────────────────
+  doc.addPage();
+  fillPage();
+
+  // Page header
+  setFill(CS_SURFACE);
+  doc.rect(0, 0, W, 52, 'F');
+  setFill(CS_TEAL);
+  doc.rect(0, 52, W, 2, 'F');
+  setTextCol(CS_TEAL);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('CLOUDSMITH', margin, 28);
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('Level ' + level + ' · ' + L.name + ' — Capability Detail', margin + 76, 28);
+  setTextCol(TEXT_DIM);
+  doc.setFontSize(7.5);
+  doc.text('Page 2 of 2', W - margin, 28, { align: 'right' });
+
+  y = 76;
+
+  // ── Artifact Management ──
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('ARTIFACT MANAGEMENT', margin, y);
+  setFill(CS_BLUE);
+  doc.rect(margin + 108, y - 2, contentW - 108, 0.5, 'F');
+  y += 14;
+
+  L.am.forEach(p => {
+    const tagColors = { cs: CS_TEAL, int: CS_BLUE, proc: CS_PURPLE };
+    const tagColor = tagColors[p.tag] || CS_TEAL;
+
+    setFill(CS_SURFACE);
+    doc.roundedRect(margin, y, contentW, 38, 2, 2, 'F');
+
+    // Color dot
+    setFill(p.dot);
+    doc.circle(margin + 10, y + 12, 3, 'F');
+
+    // Title
+    setTextCol(WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(p.title, margin + 20, y + 14);
+
+    // Detail
+    setTextCol(TEXT_DIM);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    const detailLines = doc.splitTextToSize(p.detail, contentW - 80);
+    doc.text(detailLines, margin + 20, y + 26);
+
+    // Tag
+    const tagLabel = p.tag === 'cs' ? 'CS' : p.tag === 'int' ? 'INT' : 'PROC';
+    setTextCol(tagColor);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(tagLabel, W - margin - 10, y + 14, { align: 'right' });
+
+    y += 44;
+  });
+
+  y += 8;
+
+  // ── Supply Chain Security ──
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('SUPPLY CHAIN SECURITY', margin, y);
+  setFill(CS_TEAL);
+  doc.rect(margin + 113, y - 2, contentW - 113, 0.5, 'F');
+  y += 14;
+
+  L.scs.forEach(p => {
+    const tagColors = { cs: CS_TEAL, int: CS_BLUE, proc: CS_PURPLE };
+    const tagColor = tagColors[p.tag] || CS_TEAL;
+
+    setFill(CS_SURFACE);
+    doc.roundedRect(margin, y, contentW, 38, 2, 2, 'F');
+
+    setFill(p.dot);
+    doc.circle(margin + 10, y + 12, 3, 'F');
+
+    setTextCol(WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(p.title, margin + 20, y + 14);
+
+    setTextCol(TEXT_DIM);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    const detailLines = doc.splitTextToSize(p.detail, contentW - 80);
+    doc.text(detailLines, margin + 20, y + 26);
+
+    const tagLabel = p.tag === 'cs' ? 'CS' : p.tag === 'int' ? 'INT' : 'PROC';
+    setTextCol(tagColor);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(tagLabel, W - margin - 10, y + 14, { align: 'right' });
+
+    y += 44;
+
+    // Page overflow guard
+    if (y > H - 100) {
+      doc.addPage();
+      fillPage();
+      setFill(CS_SURFACE);
+      doc.rect(0, 0, W, 52, 'F');
+      setFill(CS_TEAL);
+      doc.rect(0, 52, W, 2, 'F');
+      setTextCol(TEXT_DIM);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Continued · Supply Chain Security', margin, 28);
+      y = 76;
+    }
+  });
+
+  y += 8;
+
+  // ── Regulatory Alignment ──
+  if (y > H - 180) {
+    doc.addPage();
+    fillPage();
+    setFill(CS_SURFACE);
+    doc.rect(0, 0, W, 52, 'F');
+    setFill(CS_TEAL);
+    doc.rect(0, 52, W, 2, 'F');
+    setTextCol(TEXT_DIM);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text('Regulatory & Framework Alignment', margin, 28);
+    y = 76;
+  }
+
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('REGULATORY & FRAMEWORK ALIGNMENT', margin, y);
+  setFill(CS_PURPLE);
+  doc.rect(margin + 166, y - 2, contentW - 166, 0.5, 'F');
+  y += 14;
+
+  const regColW = (contentW - 10) / 3;
+  L.reg.forEach((r, i) => {
+    const col = i % 3;
+    const rx = margin + col * (regColW + 5);
+    const ry = y + Math.floor(i / 3) * 62;
+
+    setFill(CS_SURFACE);
+    doc.roundedRect(rx, ry, regColW, 54, 2, 2, 'F');
+
+    setTextCol(TEXT_DIM);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(r.name, rx + 12, ry + 14);
+
+    setTextCol(WHITE);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(r.status, rx + 12, ry + 27);
+
+    // Bar track
+    const barTrackW = regColW - 24;
+    setFill(BORDER);
+    doc.roundedRect(rx + 12, ry + 36, barTrackW, 3, 1, 1, 'F');
+    const barFill = (r.fill / 100) * barTrackW;
+    if (barFill > 0) {
+      setFill(r.color);
+      doc.roundedRect(rx + 12, ry + 36, barFill, 3, 1, 1, 'F');
+    }
+  });
+
+  y += Math.ceil(L.reg.length / 3) * 62 + 16;
+
+  // ── Footer ──
+  const footerY = H - 36;
+  setFill(BORDER);
+  doc.rect(margin, footerY - 8, contentW, 0.5, 'F');
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('cloudsmith.com  ·  Artifact Security Maturity Assessment  ·  Confidential', margin, footerY + 8);
+  doc.text('cloudsmith.com/book-a-demo', W - margin, footerY + 8, { align: 'right' });
+
+  // Also add footer to page 1
+  doc.setPage(1);
+  setFill(BORDER);
+  doc.rect(margin, footerY - 8, contentW, 0.5, 'F');
+  setTextCol(TEXT_DIM);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text('cloudsmith.com  ·  Artifact Security Maturity Assessment  ·  Confidential', margin, footerY + 8);
+  doc.text('cloudsmith.com/book-a-demo', W - margin, footerY + 8, { align: 'right' });
+
+  // Save
+  doc.save(`cloudsmith-maturity-assessment-level${level}.pdf`);
+
+  if (btn) { btn.innerHTML = '<span>↓</span> Download PDF Report'; btn.disabled = false; }
 }
 
 function enterModel() {
